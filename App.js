@@ -19,25 +19,52 @@ const instructions = Platform.select({
     android: 'Double tap R on your keyboard to reload,\n' +
     'Shake or press menu button for dev menu',
 });
+const GRAVITY = 9;
 
 export default class App extends Component {
     constructor(props) {
         super(props);
 
         this.state = {
-            TEXT: "HERE"
+            TEXT: "HERE22",
+            PAST: []
         };
-
-        let accelerationObservable;
 
         new Accelerometer({
             updateInterval: 100, // defaults to 100ms
         }).then((result) => {
-            accelerationObservable = result;
-            accelerationObservable
-                .map(({x, y, z}) => x + y + z)
-                .filter(speed => speed > 0)
-                .subscribe(speed => this.setState({TEXT: speed}));
+            console.dir(result);
+
+            result
+                .map(({x, y, z}) => {
+                    return [x.toFixed(2), y.toFixed(2), z.toFixed(2), (new Date).getTime(), Math.abs(parseInt(x)) + Math.abs(parseInt(y)) + Math.abs(parseInt(z)) - GRAVITY]
+                }, [])
+                .subscribe(location => {
+                    console.log("HERE");
+                        let speed = location[4];
+                        let past = this.state['PAST'];
+
+                        if (past.length > 29) {
+                            past.splice(0, 1);
+                        }
+
+                        past.push(location);
+
+                        let sum = 0, times = 0;
+                        if (past.length > 5) {
+                            times = 0;
+                            for (let i = past.length - 5; i < past.length; i++) {
+                                sum += past[i][4];
+                                times++;
+                            }
+                        }
+
+                        this.setState({TEXT: location.join(" ") + " SPEED: " + speed + " SUM: " + sum + " TIMES: " + times});
+                    }
+                );
+        }).catch((error) => {
+            console.log("ERROR:");
+            console.dir(error);
         });
     }
 
@@ -45,14 +72,8 @@ export default class App extends Component {
         return (
             <View style={styles.container}>
                 <Text style={styles.welcome}>
-                    Welcome to React Native!
                     {this.state.TEXT}
-                </Text>
-                <Text style={styles.instructions}>
-                    To get started, edit App.js
-                </Text>
-                <Text style={styles.instructions}>
-                    {instructions}
+                    {this.state.SHAKE}
                 </Text>
             </View>
         );
